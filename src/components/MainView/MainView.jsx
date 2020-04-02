@@ -21,7 +21,7 @@ class MainView extends React.Component {
 
   render() {
     return (
-      <div className='ui container'>
+      <div className='ui container' style={{marginTop:'20px'}}>
         <div className='ui vertically grid'>
           <div className='row'>
             <div className='left floated ten wide column'>
