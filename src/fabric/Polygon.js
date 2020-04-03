@@ -56,7 +56,7 @@ class Polygon {
       id: this.getId(),
       name,
       type: this.POINT_TYPE,
-      radius: 6,
+      radius: 5,
       fill: this.POINT_COLOR,
       left: x,
       top: y,
@@ -89,7 +89,7 @@ class Polygon {
         this.canvasF.discardActiveObject()
         this.selectedPolygon.points.map((p, i) => {
           const point = this.createPoint(p.x, p.y, true, false, false, i)
-          this.canvasF.add(point)
+          return this.canvasF.add(point)
         })
       } else {
         this.removeAllPoints()
