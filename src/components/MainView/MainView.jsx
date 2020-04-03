@@ -3,6 +3,12 @@ import { Polygon } from '../../fabric/Polygon'
 import { fabric } from 'fabric'
 
 class MainView extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      currentState: 'NO POLYGON'
+    }
+  }
 
   componentDidMount() {
     const canvas = document.getElementsByClassName('canvas')[0]
@@ -10,13 +16,23 @@ class MainView extends React.Component {
   }
 
   createCanvas = (width, height) => {
-    this.canvasF = new fabric.Canvas('canvas-f', { width, height})
+    this.canvasF = new fabric.Canvas('canvas-f', { width, height, fireRightClick: true})
+    this.canvasF.stopContextMenu = true
   }
 
   createPolygon = () => {
     new Polygon(
-      this.canvasF, this.canvasF.width, this.canvasF.height
+      this.canvasF, 
+      this.canvasF.width, 
+      this.canvasF.height,
+      this.onChangePolygonState
     )
+  }
+
+  onChangePolygonState = state => {
+    this.setState({
+      currentState: state
+    })
   }
 
   render() {
@@ -37,6 +53,12 @@ class MainView extends React.Component {
           </div>
           <div className='row'>
             <canvas id='canvas-f' className='canvas' style={{border:'1px solid grey', width:'100%', height:'100%'}} />
+            <div className='ui basic grey large label' style={{marginTop:'10px'}}>
+              Mode:
+              <div className='detail' style={{color: '#CD91A8'}}>
+                {this.state.currentState}
+              </div>
+            </div>
           </div>
         </div>
       </div>

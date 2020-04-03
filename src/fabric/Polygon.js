@@ -8,18 +8,28 @@ class Polygon {
   POLYGON_TYPE = 'POLYGON'
   POINT_TYPE = 'POINT'
 
+  SELECTABLE_STATE = 'SELECTABLE'
+  EDITION_STATE = 'EDITION'
+
   selectedPolygon = undefined
+  currentState = this.SELECTABLE_STATE
   
-  constructor(canvas, width, height) {
+  constructor(canvas, width, height, onChangeState) {
     this.canvasF = canvas
+    this.onChangeState = onChangeState
     let coords = this.getPolygonDefaultCoords(width/2, height/2)
     coords = coords.map(p => new fabric.Point(p[0], p[1]))
     this.selectedPolygon = this.createPolygon(coords, true, false)
     this.canvasF.add(this.selectedPolygon)
     this.canvasF.setActiveObject(this.selectedPolygon)
-
+    this.updateState(this.SELECTABLE_STATE)
     this.addPolygonListeners()
     this.setCanvasListeners()
+  }
+
+  updateState = state => {
+    this.onChangeState(state)
+    this.currentState = state
   }
 
   getPolygonDefaultCoords = (width, height) => {
@@ -45,13 +55,12 @@ class Polygon {
     })
   }
 
-  reDrawPolygon = (selectable, objectCaching) => {
-    const points = this.selectedPolygon.points
+  reDrawPolygon = (points, selectable, objectCaching) => {
     this.canvasF.remove(this.selectedPolygon)
     this.selectedPolygon = this.createPolygon(points, selectable, objectCaching)
   }
 
-  createPoint = (x, y, selectable, hasBorders, hasControls, name) => {
+  createCirclePoint = (x, y, selectable, hasBorders, hasControls, name) => {
     return new fabric.Circle({
       id: this.getId(),
       name,
@@ -65,6 +74,14 @@ class Polygon {
       originY: 'center',
       hasBorders,
       hasControls
+    })
+  }
+
+  createCirclePointsFromPolygon = () => {
+    if (!this.selectedPolygon) return
+    this.selectedPolygon.points.map((p, i) => {
+      const point = this.createCirclePoint(p.x, p.y, true, false, false, i)
+      return this.canvasF.add(point)
     })
   }
 
@@ -84,16 +101,16 @@ class Polygon {
 
   addPolygonListeners = () => {
     this.selectedPolygon.on('mousedblclick', e => {
-      if (this.selectedPolygon.get('selectable')) {
+      if (this.currentState === this.SELECTABLE_STATE && this.selectedPolygon.get('selectable')) {
+        this.updateState(this.EDITION_STATE)
         this.selectedPolygon.set('selectable', false)
         this.canvasF.discardActiveObject()
-        this.selectedPolygon.points.map((p, i) => {
-          const point = this.createPoint(p.x, p.y, true, false, false, i)
-          return this.canvasF.add(point)
-        })
+        this.createCirclePointsFromPolygon()
       } else {
+        this.updateState(this.SELECTABLE_STATE)
         this.removeAllPoints()
-        this.reDrawPolygon(true, false)
+        const points = this.selectedPolygon.points
+        this.reDrawPolygon(points, true, false)
         this.canvasF.add(this.selectedPolygon)
         this.canvasF.setActiveObject(this.selectedPolygon)    
         this.addPolygonListeners()
@@ -124,17 +141,31 @@ class Polygon {
   onPointModified = object => {
     if (object.type !== this.POINT_TYPE) return
     this.selectedPolygon.points[object.name] = new fabric.Point(object.getCenterPoint().x, object.getCenterPoint().y)
-    this.reDrawPolygon(false, false)
+    const points = this.selectedPolygon.points
+    this.reDrawPolygon(points, false, false)
     this.canvasF.add(this.selectedPolygon)
+    this.selectedPolygon.sendToBack()
+    this.addPolygonListeners()
+  }
+
+  onRightClickEditionMode = event => {
+    const { pointer } = event
+    const newPoint = new fabric.Point(pointer.x, pointer.y)
+    const polygonPoints = this.selectedPolygon.points
+    polygonPoints.push(newPoint)
+    this.reDrawPolygon(polygonPoints, false, false)
+    this.canvasF.add(this.selectedPolygon)
+    this.removeAllPoints()
+    this.createCirclePointsFromPolygon()
     this.selectedPolygon.sendToBack()
     this.addPolygonListeners()
   }
 
   setCanvasListeners = () => {
     //POINTS
-    this.canvasF.on('object:moving', o => {
+    this.canvasF.on('object:moving', e => {
       if (!this.selectedPolygon) return
-      this.onPointModified(o.target)
+      this.onPointModified(e.target)
     })
     //POLYGONS
     this.canvasF.on('object:moved', e => {
@@ -148,6 +179,11 @@ class Polygon {
     this.canvasF.on('object:scaled', e => {
       if (!this.selectedPolygon) return
       this.onPolygonModified(e.target)
+    })
+    //RIGHT BUTTON CLICK
+    this.canvasF.on('mouse:down', e => {
+      if (!this.selectedPolygon || this.currentState !== this.EDITION_STATE || e.button !== 3) return
+      this.onRightClickEditionMode(e)
     })
   }
 }
