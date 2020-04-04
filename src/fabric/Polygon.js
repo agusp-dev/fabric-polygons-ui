@@ -85,7 +85,13 @@ class Polygon {
     })
   }
 
-  removeAllPoints = () => {
+  removePolygonPoint = (x, y) => {
+    if (!this.selectedPolygon) return
+    let currentPoints = this.selectedPolygon.points
+    this.selectedPolygon.points = currentPoints.filter(p => p.x !== x || p.y !== y)
+  }
+
+  removeAllCirclePoints = () => {
     this.canvasF.getObjects()
       .filter(o => o.type === this.POINT_TYPE)
       .map(p => this.canvasF.remove(p))
@@ -108,7 +114,7 @@ class Polygon {
         this.createCirclePointsFromPolygon()
       } else {
         this.updateState(this.SELECTABLE_STATE)
-        this.removeAllPoints()
+        this.removeAllCirclePoints()
         const points = this.selectedPolygon.points
         this.reDrawPolygon(points, true, false)
         this.canvasF.add(this.selectedPolygon)
@@ -155,7 +161,21 @@ class Polygon {
     polygonPoints.push(newPoint)
     this.reDrawPolygon(polygonPoints, false, false)
     this.canvasF.add(this.selectedPolygon)
-    this.removeAllPoints()
+    this.removeAllCirclePoints()
+    this.createCirclePointsFromPolygon()
+    this.selectedPolygon.sendToBack()
+    this.addPolygonListeners()
+  }
+
+  onPointDoubleClick = object => {
+
+    this.removePolygonPoint(object.left, object.top)
+    const newPoints = this.selectedPolygon.points
+
+    this.reDrawPolygon(newPoints, false, false)
+    this.canvasF.add(this.selectedPolygon)
+    
+    this.removeAllCirclePoints()
     this.createCirclePointsFromPolygon()
     this.selectedPolygon.sendToBack()
     this.addPolygonListeners()
@@ -166,6 +186,14 @@ class Polygon {
     this.canvasF.on('object:moving', e => {
       if (!this.selectedPolygon) return
       this.onPointModified(e.target)
+    })
+    this.canvasF.on('mouse:dblclick', e => {
+      if (!this.selectedPolygon) return
+      if (this.selectedPolygon.points.length === 3) return
+      const { target } = e
+      if (!target) return
+      if (target.type !== this.POINT_TYPE) return
+      this.onPointDoubleClick(target)
     })
     //POLYGONS
     this.canvasF.on('object:moved', e => {

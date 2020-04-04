@@ -5,6 +5,7 @@ import { fabric } from 'fabric'
 class MainView extends React.Component {
   constructor(props) {
     super(props)
+    this.polygonCreated = false
     this.state = {
       currentState: 'NO POLYGON'
     }
@@ -21,6 +22,8 @@ class MainView extends React.Component {
   }
 
   createPolygon = () => {
+    if (this.polygonCreated) return
+    this.polygonCreated = true
     new Polygon(
       this.canvasF, 
       this.canvasF.width, 
