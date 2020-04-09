@@ -1,4 +1,5 @@
 import { fabric } from 'fabric'
+import { sorter } from '../util/Sorter'
 
 class Polygon {
 
@@ -158,7 +159,15 @@ class Polygon {
     const { pointer } = event
     const newPoint = new fabric.Point(pointer.x, pointer.y)
     const polygonPoints = this.selectedPolygon.points
-    polygonPoints.push(newPoint)
+    
+    
+    const indexToAdd = sorter.getSorteredPoints(polygonPoints, newPoint)
+    console.log('getSorteredPoints', indexToAdd)
+
+    polygonPoints.splice(indexToAdd+1, 0, newPoint)
+
+    // polygonPoints.push(newPoint)
+
     this.reDrawPolygon(polygonPoints, false, false)
     this.canvasF.add(this.selectedPolygon)
     this.removeAllCirclePoints()

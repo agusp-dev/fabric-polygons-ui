@@ -1,18 +1,23 @@
-export const Sorter = {
-  getArraySortered,
-  getPointsDistance
-}
+import sortByDistance from 'sort-by-distance'
 
-getArraySortered = array => {
-  
+const getSorteredPoints = (points, newPoint) => {
+
+  //Change Points to {x, y}
+  points = points.map(p => {
+    return {x: p.x, y: p.y}
+  })
+  newPoint = {x:newPoint.x, y:newPoint.y}
+
+  console.log('1', points)
+  console.log('2', newPoint)
+
+  //Closest point to newPoint
+  const closestPoint = sortByDistance(newPoint, points)[0]
+
+  //Return index to add
+  return points.indexOf(closestPoint)
 }
   
-
-getPointsDistance = (p1, p2) => {
-  return Math.sqrt( 
-    Math.pow(
-      (p2.x - p1.x), 2) + 
-    Math.pow(
-      (p2.y - p1.y), 2) 
-  )
+export const sorter = {
+  getSorteredPoints
 }
