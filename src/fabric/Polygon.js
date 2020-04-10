@@ -4,9 +4,15 @@ class Polygon {
 
   BACKGROUND_COLOR = '#62B7A0'
   POINT_COLOR = '#368F77'
+  INVISIBLE_POINT_COLOR = 'rgba(173, 173, 173, 0.5)'
   BORDER_COLOR = '#7C7C7C'
+
   POLYGON_TYPE = 'POLYGON'
   POINT_TYPE = 'POINT'
+  INVISIBLE_POINT_TYPE = 'INVISIBLE_POINT'
+
+  POINT_RADIUS = 5
+  INVISIBLE_POINT
 
   SELECTABLE_STATE = 'SELECTABLE'
   EDITION_STATE = 'EDITION'
@@ -60,13 +66,13 @@ class Polygon {
     this.selectedPolygon = this.createPolygon(points, selectable, objectCaching)
   }
 
-  createCirclePoint = (x, y, selectable, hasBorders, hasControls, name) => {
+  createCirclePoint = (x, y, type, selectable, hasBorders, hasControls, name) => {
     return new fabric.Circle({
       id: this.getId(),
       name,
-      type: this.POINT_TYPE,
+      type,
       radius: 5,
-      fill: this.POINT_COLOR,
+      fill: type === this.POINT_TYPE ? this.POINT_COLOR : this.INVISIBLE_POINT_COLOR,
       left: x,
       top: y,
       selectable,
@@ -80,8 +86,23 @@ class Polygon {
   createCirclePointsFromPolygon = () => {
     if (!this.selectedPolygon) return
     this.selectedPolygon.points.map((p, i) => {
-      const point = this.createCirclePoint(p.x, p.y, true, false, false, i)
+      const point = this.createCirclePoint(p.x, p.y, this.POINT_TYPE, true, false, false, i)
       return this.canvasF.add(point)
+    })
+  }
+
+  createCircleInvisiblePoints = () => {
+    if (!this.selectedPolygon) return
+    const size = this.selectedPolygon.points.length
+    this.selectedPolygon.points.forEach((p, i) => {
+      let index = 0
+      if (i+1 !== size) {
+        index = i+1    
+      }
+      const centerPoint = this.getCenterPointOfLine(p, this.selectedPolygon.points[index])
+      const point = this.createCirclePoint(centerPoint.x, centerPoint.y, 
+        this.INVISIBLE_POINT_TYPE, true, false, false, i+50)
+      this.canvasF.add(point)
     })
   }
 
@@ -93,7 +114,7 @@ class Polygon {
 
   removeAllCirclePoints = () => {
     this.canvasF.getObjects()
-      .filter(o => o.type === this.POINT_TYPE)
+      .filter(o => o.type === this.POINT_TYPE || o.type === this.INVISIBLE_POINT_TYPE)
       .map(p => this.canvasF.remove(p))
   }
 
@@ -105,6 +126,10 @@ class Polygon {
     return (x1 + x2) / 2
   }
 
+  getCenterPointOfLine = (p1, p2) => {
+    return new fabric.Point((p1.x+p2.x)/2, (p1.y+p2.y)/2)
+  }
+
   addPolygonListeners = () => {
     this.selectedPolygon.on('mousedblclick', e => {
       if (this.currentState === this.SELECTABLE_STATE && this.selectedPolygon.get('selectable')) {
@@ -112,6 +137,7 @@ class Polygon {
         this.selectedPolygon.set('selectable', false)
         this.canvasF.discardActiveObject()
         this.createCirclePointsFromPolygon()
+        this.createCircleInvisiblePoints()
       } else {
         this.updateState(this.SELECTABLE_STATE)
         this.removeAllCirclePoints()
