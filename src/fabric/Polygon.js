@@ -15,7 +15,7 @@ class Polygon {
   INVISIBLE_POINT_TYPE = 'INVISIBLE_POINT'
 
   POINT_RADIUS = 5
-  INVISIBLE_POINT_RADIUS = 3
+  INVISIBLE_POINT_RADIUS = 2.5
 
   SELECTABLE_STATE = 'SELECTABLE'
   EDITION_STATE = 'EDITION'
@@ -25,6 +25,7 @@ class Polygon {
   
   constructor(canvas, width, height, onChangeState) {
     this.canvasF = canvas
+    this.canvasF.selection = false
     this.onChangeState = onChangeState
     let coords = this.getPolygonDefaultCoords(width/2, height/2)
     coords = coords.map(p => new fabric.Point(p[0], p[1]))
@@ -69,13 +70,14 @@ class Polygon {
     this.selectedPolygon = this.createPolygon(points, selectable, objectCaching)
   }
 
-  createCirclePoint = (x, y, type, selectable, hasBorders, hasControls, name) => {
+  createCirclePoint = (x, y, type, futureIndex, selectable, hasBorders, hasControls, name) => {
     return new fabric.Circle({
       id: this.getId(),
       name,
       type,
       radius: type === this.POINT_TYPE ? this.POINT_RADIUS : this.INVISIBLE_POINT_RADIUS,
       fill: type === this.POINT_TYPE ? this.POINT_COLOR : this.INVISIBLE_POINT_COLOR,
+      futureIndex, //For INVISIBLE_POINT, is the index when it converts to a real polygon point
       left: x,
       top: y,
       selectable,
@@ -89,7 +91,7 @@ class Polygon {
   createCirclePointsFromPolygon = () => {
     if (!this.selectedPolygon) return
     this.selectedPolygon.points.map((p, i) => {
-      const point = this.createCirclePoint(p.x, p.y, this.POINT_TYPE, true, false, false, i)
+      const point = this.createCirclePoint(p.x, p.y, this.POINT_TYPE, -1, true, false, false, i)
       return this.canvasF.add(point)
     })
   }
@@ -104,7 +106,7 @@ class Polygon {
       }
       const centerPoint = this.getCenterPointOfLine(p, this.selectedPolygon.points[index])
       const point = this.createCirclePoint(centerPoint.x, centerPoint.y, 
-        this.INVISIBLE_POINT_TYPE, true, false, false, i+50)
+        this.INVISIBLE_POINT_TYPE, i+1, true, false, false, i+50)
       this.canvasF.add(point)
     })
   }
@@ -204,15 +206,15 @@ class Polygon {
     this.addPolygonListeners()
   }
 
-  onRightClickEditionMode = event => {
-    const { pointer } = event
-    const newPoint = new fabric.Point(pointer.x, pointer.y)
+  onCreateNewPoint = (x, y, index) => {
+    const newPoint = new fabric.Point(x, y)
     const polygonPoints = this.selectedPolygon.points
-    polygonPoints.push(newPoint)
+    polygonPoints.splice(index, 0, newPoint)
     this.reDrawPolygon(polygonPoints, false, false)
     this.canvasF.add(this.selectedPolygon)
     this.removeCirclePoints(this.ALL_POINTS)
     this.createCirclePointsFromPolygon()
+    this.createCircleInvisiblePoints()
     this.selectedPolygon.sendToBack()
     this.addPolygonListeners()
   }
@@ -238,8 +240,17 @@ class Polygon {
       if (!this.selectedPolygon) return
       this.onPointModified(e.target)
     })
+    this.canvasF.on('mouse:down', e => {
+      if (!this.selectedPolygon) return
+      if (this.currentState !== this.EDITION_STATE) return
+      const { target } = e
+      if (!target) return
+      if (target.type !== this.INVISIBLE_POINT_TYPE) return
+      this.onCreateNewPoint(target.left, target.top, target.futureIndex)
+    })
     this.canvasF.on('mouse:dblclick', e => {
       if (!this.selectedPolygon) return
+      if (this.currentState !== this.EDITION_STATE) return
       if (this.selectedPolygon.points.length === 3) return
       const { target } = e
       if (!target) return
@@ -258,11 +269,6 @@ class Polygon {
     this.canvasF.on('object:scaled', e => {
       if (!this.selectedPolygon) return
       this.onPolygonModified(e.target)
-    })
-    //RIGHT BUTTON CLICK
-    this.canvasF.on('mouse:down', e => {
-      if (!this.selectedPolygon || this.currentState !== this.EDITION_STATE || e.button !== 3) return
-      this.onRightClickEditionMode(e)
     })
   }
 }
