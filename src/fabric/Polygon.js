@@ -217,7 +217,7 @@ class Polygon {
     this.addPolygonListeners()
   }
 
-  onPointDoubleClick = object => {
+  onRemovePoint = object => {
 
     this.removePolygonPoint(object.left, object.top)
     const newPoints = this.selectedPolygon.points
@@ -227,6 +227,7 @@ class Polygon {
     
     this.removeCirclePoints(this.ALL_POINTS)
     this.createCirclePointsFromPolygon()
+    this.createCircleInvisiblePoints()
     this.selectedPolygon.sendToBack()
     this.addPolygonListeners()
   }
@@ -243,7 +244,7 @@ class Polygon {
       const { target } = e
       if (!target) return
       if (target.type !== this.POINT_TYPE) return
-      this.onPointDoubleClick(target)
+      this.onRemovePoint(target)
     })
     //POLYGONS
     this.canvasF.on('object:moved', e => {
